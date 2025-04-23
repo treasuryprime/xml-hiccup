@@ -125,9 +125,29 @@
     node))
 
 (defn parse
-  "Convert `xml` into a tree of Hiccup data."
-  [xml]
-  (node->hiccup (dom-parse xml)))
+  "Convert `xml` (a String, File, or InputStream) into a tree of Hiccup data.
+
+  If the `xml` is a File object, you may provide a :file-meta map in the `opts`
+  to specify relevant metadata for the output, setting :filename or :path to a
+  truthy value.
+
+  If you want the absolute file path as metadata, you can state this as:
+     (parse xml {:file-meta {:path :absolute}})."
+  ([xml]
+   (parse xml nil))
+  ([xml {:keys [file-meta]}]
+   (let [hiccup (node->hiccup (dom-parse xml))]
+     #?(:clj  (if (and (instance? File xml) (not-empty file-meta))
+                (let [{:keys [filename path abspath]} file-meta]
+                  (with-meta
+                    hiccup
+                    (cond-> {}
+                      filename (assoc :filename (.getName ^File xml))
+                      path (#(if (= path :absolute)
+                               (assoc % :path (.getAbsolutePath ^File xml))
+                               (assoc % :path (.getPath ^File xml)))))))
+                hiccup)
+        :cljs hiccup))))
 
 (comment
   ;; Create Hiccup for testing
