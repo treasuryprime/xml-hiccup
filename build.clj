@@ -10,8 +10,8 @@
    [clojure.tools.build.api :as b]
    [deps-deploy.deps-deploy :as dd]))
 
-(def lib 'xml-hiccup)
-(def version "0.1.5")
+(def lib 'treasuryprime/xml-hiccup)
+(def version "0.1.6")
 (def class-dir "target/classes")
 (def basis (delay (b/create-basis {:project "deps.edn"})))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
@@ -39,10 +39,10 @@
                 :lib       lib
                 :version   version
                 :basis     @basis
-                :src-dirs  ["src-clj"]
+                :src-dirs  ["src"]
                 :scm       scm
                 :pom-data  pom-data})
-  (b/copy-dir {:src-dirs ["src-clj"] :target-dir class-dir})
+  (b/copy-dir {:src-dirs ["src"] :target-dir class-dir})
   (b/jar {:class-dir class-dir :jar-file jar-file})
   (println "Wrote" jar-file))
 
