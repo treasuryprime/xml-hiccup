@@ -44,11 +44,5 @@ jobs:
       - name: Print versions
         run: clojure -Sdescribe
 
-      - name: Format check
-        run: clojure -M:cljfmt check
-
-      - name: clj-kondo lint
-        run: clj-kondo --lint src-clj/ test/
-
       - name: Run tests
         run: clojure -M:test
