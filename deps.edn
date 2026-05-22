@@ -1,5 +1,22 @@
 {:paths   ["src"]
- :aliases {:build {:extra-paths ["dev/src/"]
-                   :extra-deps  {io.github.seancorfield/build-clj
-                                 {:git/tag "v0.9.2" :git/sha "9c9f078"}}
-                   :ns-default  build}}}
+ :aliases {:test
+           {:extra-paths ["test"]
+            :extra-deps  {lambdaisland/kaocha {:mvn/version "1.91.1392"}
+                          lambdaisland/kaocha-junit-xml {:mvn/version "1.17.101"}
+                          pjstadig/humane-test-output {:mvn/version "0.11.0"}}
+            :main-opts   ["-m" "kaocha.runner"]}
+
+             ;; clojure -M:test/watch
+           :test/watch
+           {:extra-paths ["test"]
+            :extra-deps  {lambdaisland/kaocha         {:mvn/version "1.91.1392"}
+                          pjstadig/humane-test-output {:mvn/version "0.11.0"}}
+            :main-opts   ["-m" "kaocha.runner" "--watch"]}
+
+             ;; clojure -T:build <task>    (clean | jar | install | deploy)
+           :build
+           {:deps       {io.github.clojure/tools.build {:git/tag "v0.10.5"
+                                                        :git/sha "2a21b7a"}
+                         slipset/deps-deploy           {:mvn/version "0.2.2"}}
+            :ns-default build
+            :paths      ["."]}}}
