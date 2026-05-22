@@ -2,3 +2,7 @@
 *.iml
 .nrepl-port
 target
+.cpcache
+.DS_Store
+.clj-kondo/
+.lsp
