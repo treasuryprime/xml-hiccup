@@ -19,7 +19,7 @@
            (def Comment js/Comment)
            (def Node js/Node)))
 
-(def parser
+(defn parser []
   #?(:clj  (.newDocumentBuilder (DocumentBuilderFactory/newInstance))
      :cljs (js/DOMParser.)))
 
@@ -32,19 +32,21 @@
       (keyword s1))))
 
 (defn dom-parse
-  "Parse `xml` into a DOM tree."
+  "Parse `xml` into a DOM tree. Gets a new parser whenever this is called
+   because the parsers are not thread safe."
   [xml]
-  #?(:clj  (cond
-             (string? xml)
-             (dom-parse (ByteArrayInputStream. (.getBytes xml)))
+  (let [parser (parser)]
+    #?(:clj  (cond
+               (string? xml)
+               (dom-parse (ByteArrayInputStream. (.getBytes xml)))
 
-             (instance? InputStream xml)
-             (.parse ^DocumentBuilder parser ^InputStream xml)
+               (instance? InputStream xml)
+               (.parse ^DocumentBuilder parser ^InputStream xml)
 
-             (instance? File xml)
-             (.parse ^DocumentBuilder parser ^File xml))
+               (instance? File xml)
+               (.parse ^DocumentBuilder parser ^File xml))
 
-     :cljs (.-firstChild (.parseFromString parser xml "text/xml"))))
+       :cljs (.-firstChild (.parseFromString parser xml "text/xml")))))
 
 (defn attribute-objects
   "Retrieve the raw attribute objects from the `node`."
