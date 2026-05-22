@@ -1,5 +1,5 @@
 (ns dk.cst.xml-hiccup
-  "Clojure(Script) implementation of an XML parser that, more or less directly,
+  "Clojure implementation of an XML parser that, more or less directly,
   converts an XML file into Hiccup data without trying to be clever about it.
 
   Comments and superfluous whitespace are deliberately not preserved, while
@@ -8,20 +8,12 @@
 
   See: https://developer.mozilla.org/en-US/docs/Web/API/Node/nodeType"
   (:require [clojure.string :as str])
-  #?(:clj (:import [org.w3c.dom Document Element Text Comment Node NamedNodeMap]
-                   [javax.xml.parsers DocumentBuilderFactory DocumentBuilder]
-                   [java.io ByteArrayInputStream InputStream File])))
-
-#?(:cljs (do
-           (def Document js/Document)
-           (def Element js/Element)
-           (def Text js/Text)
-           (def Comment js/Comment)
-           (def Node js/Node)))
+  (:import [java.io ByteArrayInputStream InputStream File]
+           [javax.xml.parsers DocumentBuilderFactory DocumentBuilder]
+           [org.w3c.dom Document Element Text Comment Node]))
 
 (defn parser []
-  #?(:clj  (.newDocumentBuilder (DocumentBuilderFactory/newInstance))
-     :cljs (js/DOMParser.)))
+  (.newDocumentBuilder (DocumentBuilderFactory/newInstance)))
 
 (defn keywordize
   "Keywordize `s` converting XML namespaces to Clojure namespaces."
@@ -36,37 +28,32 @@
    because the parsers are not thread safe."
   [xml]
   (let [parser (parser)]
-    #?(:clj  (cond
-               (string? xml)
-               (dom-parse (ByteArrayInputStream. (.getBytes xml)))
+    (cond
+      (string? xml)
+      (dom-parse (ByteArrayInputStream. (.getBytes xml)))
 
-               (instance? InputStream xml)
-               (.parse ^DocumentBuilder parser ^InputStream xml)
+      (instance? InputStream xml)
+      (.parse ^DocumentBuilder parser ^InputStream xml)
 
-               (instance? File xml)
-               (.parse ^DocumentBuilder parser ^File xml))
-
-       :cljs (.-firstChild (.parseFromString parser xml "text/xml")))))
+      (instance? File xml)
+      (.parse ^DocumentBuilder parser ^File xml))))
 
 (defn attribute-objects
   "Retrieve the raw attribute objects from the `node`."
   [^Node node]
-  #?(:clj  (let [named-node-map (.getAttributes node)]
-             (for [n (range (.getLength named-node-map))]
-               (.item named-node-map n)))
-     :cljs (.-attributes node)))
+  (let [named-node-map (.getAttributes node)]
+    (for [n (range (.getLength named-node-map))]
+      (.item named-node-map n))))
 
 (defn attribute-key
   "Retrieve the key from the `attribute` object."
   [^Node attribute]
-  #?(:clj  (.getNodeName attribute)
-     :cljs (.-name attribute)))
+  (.getNodeName attribute))
 
 (defn attribute-val
   "Retrieve the value from the `attribute` object."
   [^Node attribute]
-  #?(:clj  (.getNodeValue attribute)
-     :cljs (.-value attribute)))
+  (.getNodeValue attribute))
 
 (defn node-attrs
   "Get a Hiccup attributes map from a `node`."
@@ -78,21 +65,18 @@
 (defn node-tag
   "Get a Hiccup tag from a `node`."
   [^Node node]
-  (keywordize #?(:clj  (.getNodeName node)
-                 :cljs (.-tagName node))))
+  (keywordize (.getNodeName node)))
 
 (defn node-children
   "Get the children of the `node` as objects."
   [^Node node]
-  #?(:clj  (let [node-list (.getChildNodes node)]
-             (for [n (range (.getLength node-list))]
-               (.item node-list n)))
-     :cljs (.-childNodes node)))
+  (let [node-list (.getChildNodes node)]
+    (for [n (range (.getLength node-list))]
+      (.item node-list n))))
 
 (defn whole-text
   [^Text node]
-  #?(:clj  (.getWholeText node)
-     :cljs (.-wholeText node)))
+  (.getWholeText node))
 
 (defn node->hiccup
   "Recursively convert a `node` and its children to Hiccup."
@@ -100,18 +84,15 @@
   (condp instance? node
 
     Document
-    #?(:clj  (node->hiccup
-               (doto (.getDocumentElement ^Document node)
-                 (.normalize)))
-
-       ;; TODO: is the CLJS part relevant?
-       :cljs (map node->hiccup (node-children node)))
+    (node->hiccup
+     (doto (.getDocumentElement ^Document node)
+       (.normalize)))
 
     Element
     (into [(node-tag node) (node-attrs node)]
           (comp
-            (map node->hiccup)
-            (remove nil?))
+           (map node->hiccup)
+           (remove nil?))
           (node-children node))
 
     ;; TODO: should probably escape HTML here
@@ -139,17 +120,16 @@
    (parse xml nil))
   ([xml {:keys [file-meta]}]
    (let [hiccup (node->hiccup (dom-parse xml))]
-     #?(:clj  (if (and (instance? File xml) (not-empty file-meta))
-                (let [{:keys [filename path abspath]} file-meta]
-                  (with-meta
-                    hiccup
-                    (cond-> {}
-                      filename (assoc :filename (.getName ^File xml))
-                      path (#(if (= path :absolute)
-                               (assoc % :path (.getAbsolutePath ^File xml))
-                               (assoc % :path (.getPath ^File xml)))))))
-                hiccup)
-        :cljs hiccup))))
+     (if (and (instance? File xml) (not-empty file-meta))
+       (let [{:keys [filename path _abspath]} file-meta]
+         (with-meta
+           hiccup
+           (cond-> {}
+             filename (assoc :filename (.getName ^File xml))
+             path (#(if (= path :absolute)
+                      (assoc % :path (.getAbsolutePath ^File xml))
+                      (assoc % :path (.getPath ^File xml)))))))
+       hiccup))))
 
 (comment
   ;; Create Hiccup for testing
